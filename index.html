@@ -5,212 +5,383 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Зимняя деревня: Метельск</title>
   <style>
-    body { margin:0; overflow:hidden; background:#2b3a4d; touch-action:none; font-family:Arial,sans-serif; }
-    #quest-hint {
+    body { margin:0; overflow:hidden; background:#0b111b; touch-action:none; font-family:Arial,sans-serif; }
+    #ui-layer {
       position:fixed; top:10px; left:50%; transform:translateX(-50%);
-      color:#dfe8f2; background:rgba(20,30,45,.75); padding:8px 14px; border-radius:8px;
-      font-size:14px; z-index:20; pointer-events:none; max-width:90%; text-align:center;
+      color:#e0e8f0; background:rgba(10,15,25,.85); padding:10px 16px; border-radius:8px;
+      font-size:15px; z-index:20; pointer-events:none; max-width:90%; text-align:center;
+      box-shadow:0 4px 16px rgba(0,0,0,.4);
     }
     #panel {
       position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-      background:#f4ecd8; color:#2b2114; padding:18px; border-radius:10px;
-      max-width:300px; max-height:70vh; overflow-y:auto; font-size:14px; line-height:1.5;
-      display:none; z-index:30; box-shadow:0 6px 20px rgba(0,0,0,.5); white-space:pre-line;
+      background:#f4ecd8; color:#2b2114; padding:20px; border-radius:10px;
+      max-width:320px; max-height:70vh; overflow-y:auto; font-size:15px; line-height:1.5;
+      display:none; z-index:30; box-shadow:0 6px 24px rgba(0,0,0,.6); white-space:pre-line;
     }
     #panel-close {
-      margin-top:12px; padding:8px 18px; background:#7a5c3e; color:#fff;
-      border:none; border-radius:6px; width:100%; font-size:14px; cursor:pointer;
+      margin-top:14px; padding:10px 20px; background:#7a5c3e; color:#fff;
+      border:none; border-radius:6px; width:100%; font-size:15px; cursor:pointer;
     }
-    #joy {
-      position:fixed; bottom:30px; left:25px; width:130px; height:130px; border-radius:65px;
-      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); z-index:20;
-    }
-    #knob {
-      position:absolute; left:40px; top:40px; width:50px; height:50px; border-radius:25px;
-      background:rgba(255,255,255,.35); border:2px solid #fff;
+    #crosshair {
+      position:fixed; top:50%; left:50%; width:12px; height:12px;
+      background:rgba(255,255,255,.6); border-radius:50%; transform:translate(-50%,-50%);
+      pointer-events:none; z-index:10; box-shadow:0 0 8px rgba(255,255,255,.5);
     }
   </style>
 </head>
 <body>
-  <div id="quest-hint">Пройди по дороге к центру деревни. Найди письмо на пороге дома.</div>
+  <div id="ui-layer">WASD — ходить, мышь — смотреть. Найди письмо у дома с красным окном.</div>
   <div id="panel"><button id="panel-close">Закрыть</button></div>
-  <div id="joy"><div id="knob"></div></div>
+  <div id="crosshair"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ===== СЦЕНА, СВЕТ, КАМЕРА =====
+    // ===== НАСТРОЙКИ ИГРЫ =====
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2b3a4d);
-    scene.fog = new THREE.Fog(0x2b3a4d, 12, 55);
+    scene.background = new THREE.Color(0x0b111b);
+    scene.fog = new THREE.Fog(0x0b111b, 10, 60);
 
-    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 300);
-    camera.position.set(15, 10, 25);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 300);
+    camera.position.set(0, 2, 4);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
     renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0x8a99b0, 0.75));
-    const moon = new THREE.DirectionalLight(0xcdd6ff, 0.65);
-    moon.position.set(-10, 25, 5);
+    // ===== СВЕТ =====
+    scene.add(new THREE.AmbientLight(0x9ac0ff, 0.45)); // холодный общий свет
+    const moon = new THREE.DirectionalLight(0xcdd6ff, 0.75);
+    moon.position.set(-20, 30, 10);
+    moon.castShadow = true;
+    moon.shadow.camera.left = -50; moon.shadow.camera.right = 50;
+    moon.shadow.camera.top = 50; moon.shadow.camera.bottom = -50;
     scene.add(moon);
 
-    // ===== ТЕКСТУРЫ =====
-    const loader = new THREE.TextureLoader();
-    // Если нет картинок — замени map на color в материалах ниже
-    const snowTexture = loader.load('snow.png');
-    snowTexture.wrapS = snowTexture.wrapT = THREE.RepeatWrapping;
-
-    const snowdriftTexture = loader.load('snowdrift.png');
-    snowdriftTexture.wrapS = snowdriftTexture.wrapT = THREE.RepeatWrapping;
-
-    const woodTexture = loader.load('wood.png');
-    woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
-
-    const windowTexture = loader.load('window.png');
-    const brickTexture = loader.load('brick.png');
-    const roofTexture = loader.load('roof.png');
-
-    const matSnow = new THREE.MeshStandardMaterial({ color: 0xdde6ee, roughness: 1, map: snowTexture });
-    const matDrift = new THREE.MeshStandardMaterial({ color: 0xe8eff6, roughness: 1, map: snowdriftTexture });
-    const matRoad = new THREE.MeshStandardMaterial({ color: 0xbfc9d4, roughness: 1 });
-    const matWood = new THREE.MeshStandardMaterial({ color: 0x3a3129, roughness: 1, map: woodTexture });
-    const matDark = new THREE.MeshStandardMaterial({ color: 0x151a20, roughness: 1 });
-    const matBrick = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 1, map: brickTexture });
-    const matRoof = new THREE.MeshStandardMaterial({ color: 0x2c2c34, roughness: 1, map: roofTexture });
-
     // ===== ЗЕМЛЯ И ДОРОГА =====
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), matSnow);
-    ground.rotation.x = -Math.PI / 2;
+    const groundGeo = new THREE.PlaneGeometry(600, 600);
+    const groundMat = new THREE.MeshStandardMaterial({ color:0x2a3a50, roughness:1 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI/2;
+    ground.receiveShadow = true;
     scene.add(ground);
 
     function roadSegment(x1, z1, x2, z2, w) {
-      const dx = x2 - x1, dz = z2 - z1, len = Math.hypot(dx, dz);
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), matRoad);
-      m.rotation.x = -Math.PI / 2;
+      const dx = x2-x1, dz = z2-z1, len = Math.hypot(dx, dz);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), new THREE.MeshStandardMaterial({ color:0x3a4a60, roughness:1 }));
+      m.rotation.x = -Math.PI/2;
       m.rotation.z = Math.atan2(dx, dz);
-      m.position.set((x1 + x2) / 2, 0.02, (z1 + z2) / 2);
+      m.position.set((x1+x2)/2, 0.01, (z1+z2)/2);
+      m.receiveShadow = true;
       scene.add(m);
     }
-
-    roadSegment(0, 60, 2, 20, 4);
-    roadSegment(2, 20, 0, -5, 4);
+    roadSegment(0, 60, 2, 20, 4.5);
+    roadSegment(2, 20, 0, -5, 4.5);
     roadSegment(0, -5, -2, -18, 4);
-    roadSegment(-2, -18, -12, -20, 3);
-    roadSegment(0, -5, 14, -8, 3);
-    roadSegment(-2, -18, -30, -40, 3);
-    roadSegment(2, -18, 30, -38, 3);
-    roadSegment(0, -18, 0, -42, 3);
+    roadSegment(-2, -18, -12, -20, 3.5);
+    roadSegment(0, -5, 14, -8, 3.5);
+    roadSegment(-2, -18, -30, -40, 3.5);
+    roadSegment(2, -18, 30, -38, 3.5);
+    roadSegment(0, -18, 0, -42, 3.5);
 
     // Сугробы
     function drift(x, z, s) {
-      const d = new THREE.Mesh(new THREE.SphereGeometry(s, 6, 4), matDrift);
-      d.scale.y = 0.35;
+      const d = new THREE.Mesh(new THREE.SphereGeometry(s, 6, 4), new THREE.MeshStandardMaterial({ color:0xf0f4f8, roughness:1 }));
+      d.scale.y = 0.4;
       d.position.set(x, 0.1, z);
+      d.castShadow = d.receiveShadow = true;
       scene.add(d);
     }
-    const driftSpots = [[-4,50],[5,42],[-6,30],[6,10],[-5,-2],[7,-12],[-6,-24],[9,-16],[-8,-34],[12,-30],[-16,-28],[20,-34]];
-    driftSpots.forEach(p => drift(p[0], p[1], 1 + Math.random()*1.5));
+    [[-4,50],[5,42],[-6,30],[6,10],[-5,-2],[7,-12],[-6,-24],[9,-16],[-8,-34],[12,-30],[-16,-28],[20,-34]]
+      .forEach(p => drift(p, p, 1.2 + Math.random()*1.2));
 
-    // ===== ДОМА =====
-    function makeHouse(x, z, color, rot) {
+    // ===== КОЛОДЕЦ (по фото) =====
+    function makeWell(x, z) {
       const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(6,5,6), matBrick);
-      body.position.y = 2.5;
 
-      const winMat = new THREE.MeshStandardMaterial({ color:0x0d1116, roughness:.6, map: windowTexture });
-      const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-      w1.position.set(-1.5, 2.5, 3.05);
-      const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-      w2.position.set(1.5, 2.5, 3.05);
-      const w3 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-      w3.position.set(0, 2.5, 3.05);
+      // Сруб из отдельных брусьев
+      const logMat = new THREE.MeshStandardMaterial({ color:0x3a3129, roughness:1 });
+      const capMat = new THREE.MeshStandardMaterial({ color:0xf0f4f8, roughness:1 });
 
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(5,3,4), matRoof);
-      roof.position.y = 6.5;
+      const logGeo = new THREE.BoxGeometry(0.3, 1.4, 1.4);
+      for (let i=0; i<12; i++) {
+        const log = new THREE.Mesh(logGeo, logMat);
+        const angle = i * (Math.PI * 2 / 12);
+        log.position.x = Math.cos(angle) * 1.35;
+        log.position.z = Math.sin(angle) * 1.35;
+        log.rotation.y = angle;
+        log.castShadow = log.receiveShadow = true;
+        g.add(log);
+      }
+
+      // Вода
+      const water = new THREE.Mesh(new THREE.CircleGeometry(1.15, 12),
+        new THREE.MeshStandardMaterial({ color:0x1c2b38, roughness:.4, transparent:true, opacity:.8 }));
+      water.rotation.x = -Math.PI/2;
+      water.position.y = 1.1;
+      water.receiveShadow = true;
+      g.add(water);
+
+      // Стойки навеса
+      [[-1.6, 0],[1.6, 0]].forEach(p => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(.3, 2.8, .3), logMat);
+        post.position.set(p, 2.4, 0);
+        post.castShadow = post.receiveShadow = true;
+        g.add(post);
+      });
+
+      // Навес из балок
+      const beamMat = new THREE.MeshStandardMaterial({ color:0x2f2822, roughness:1 });
+      const beamGeo = new THREE.BoxGeometry(3.6, .2, .2);
+      for (let i=0; i<5; i++) {
+        const beam = new THREE.Mesh(beamGeo, beamMat);
+        beam.position.y = 4.2;
+        beam.position.x = (i-2)*0.8;
+        beam.castShadow = beam.receiveShadow = true;
+        g.add(beam);
+      }
+
+      // Крыша навеса
+      const roofGeo = new THREE.BoxGeometry(4.2, .2, 1.2);
+      const roof = new THREE.Mesh(roofGeo, capMat);
+      roof.position.set(0, 4.4, -0.6);
+      roof.castShadow = roof.receiveShadow = true;
+      g.add(roof);
+
+      // Ворот
+      const axle = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2.6, 8), logMat);
+      axle.rotation.z = Math.PI/2;
+      axle.position.set(0, 3.2, 1.8);
+      axle.castShadow = axle.receiveShadow = true;
+      g.add(axle);
+
+      g.position.set(x, 0, z);
+      scene.add(g);
+      return g;
+    }
+    makeWell(6, 2);
+
+    // ===== ДОМА (каменный цоколь + крутая крыша) =====
+    function makeHouse(x, z, rot, hasRedLight) {
+      const g = new THREE.Group();
+
+      // Каменный цоколь
+      const stoneGeo = new THREE.BoxGeometry(6.6, 1.2, 6.6);
+      const stoneMat = new THREE.MeshStandardMaterial({ color:0x4a4a4a, roughness:1 });
+      const stone = new THREE.Mesh(stoneGeo, stoneMat);
+      stone.position.y = 0.6;
+      stone.castShadow = stone.receiveShadow = true;
+      g.add(stone);
+
+      // Стены
+      const wallMat = new THREE.MeshStandardMaterial({ color:0x5a5a5a, roughness:1 });
+      const body = new THREE.Mesh(new THREE.BoxGeometry(6, 4.8, 6), wallMat);
+      body.position.y = 3.0;
+      body.castShadow = body.receiveShadow = true;
+      g.add(body);
+
+      // Окна
+      const winMat = new THREE.MeshStandardMaterial({ color:0x0d1116, roughness:.6 });
+      [[-1.8, 2.2, 3.05],[1.8, 2.2, 3.05],[0, 2.2, 3.05]].forEach(p => {
+        const w = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, .2), winMat);
+        w.position.set(p, p, p);
+        w.castShadow = w.receiveShadow = true;
+        g.add(w);
+      });
+
+      // Красное окно (как на фото)
+      if (hasRedLight) {
+        const redGeo = new THREE.BoxGeometry(1.2, 1.2, .25);
+        const redMat = new THREE.MeshStandardMaterial({ color:0xaa0000, emissive:0xaa0000, emissiveIntensity:1.2 });
+        const redWin = new THREE.Mesh(redGeo, redMat);
+        redWin.position.set(1.8, 2.2, 3.05);
+        redWin.castShadow = redWin.receiveShadow = true;
+        g.add(redWin);
+
+        // Источник света для красного окна
+        const redLight = new THREE.PointLight(0xaa0000, 2, 8);
+        redLight.position.set(1.8, 2.2, 3.8);
+        g.add(redLight);
+      }
+
+      // Крыша (крутая)
+      const roofGeo = new THREE.ConeGeometry(5.2, 3.2, 4);
+      const roofMat = new THREE.MeshStandardMaterial({ color:0x2c2c34, roughness:1 });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = 6.2;
       roof.rotation.y = Math.PI/4;
+      roof.castShadow = roof.receiveShadow = true;
+      g.add(roof);
 
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(4.7,1.6,4), new THREE.MeshStandardMaterial({ color:0xf2f6fa, roughness:1 }));
-      cap.position.y = 7.2;
+      // Снег на крыше
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(4.9, 1.4, 4),
+        new THREE.MeshStandardMaterial({ color:0xf0f4f8, roughness:1 }));
+      cap.position.y = 6.8;
       cap.rotation.y = Math.PI/4;
+      cap.castShadow = cap.receiveShadow = true;
+      g.add(cap);
 
-      const pipe = new THREE.Mesh(new THREE.BoxGeometry(.8,2,.8), matDark);
-      pipe.position.set(1.6, 6.4, 0);
+      // Труба
+      const pipe = new THREE.Mesh(new THREE.BoxGeometry(.8, 2, .8), stoneMat);
+      pipe.position.set(1.6, 6.2, 0);
+      pipe.castShadow = pipe.receiveShadow = true;
+      g.add(pipe);
 
-      const porch = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.4,1.2), matWood);
-      porch.position.set(0, 0.2, 3.4);
+      // Крыльцо
+      const porch = new THREE.Mesh(new THREE.BoxGeometry(2.4, .4, 1.4), new THREE.MeshStandardMaterial({ color:0x4a423a, roughness:1 }));
+      porch.position.set(0, .2, 3.4);
+      porch.castShadow = porch.receiveShadow = true;
+      g.add(porch);
 
-      g.add(body, w1, w2, w3, roof, cap, pipe, porch);
-      g.position.set(x,0,z);
+      g.position.set(x, 0, z);
       g.rotation.y = rot || 0;
       scene.add(g);
       return g;
     }
 
-    const houseColors = [0x4d5a63,0x5d5348,0x465a4f,0x5a4d5a,0x4d4a5a,0x5a5d4d,0x50463d,0x3d4d55,0x554d5d];
-    const houseSpots = [[-20,-10],[20,-10],[-30,-30],[30,-30],[-15,-45],[15,-45],[0,-55],[-35,-15],[35,-15]];
-    houseSpots.forEach((p,i) => makeHouse(p[0], p[1], houseColors[i]));
-    makeHouse(-12, -22, 0x6b7a85, 0); // почта
+    const houseSpots = [[-20,-10],[20,-10],[-30,-30],[30,-30],[-15,-45],[15,-45],[0,-55]];
+    houseSpots.forEach((p, i) => makeHouse(p, p, undefined, i===0)); // у первого дома красное окно
 
-    // ===== МЕЛЬНИЦА =====
-    const mill = new THREE.Group();
-    const millBody = new THREE.Mesh(new THREE.BoxGeometry(8, 8, 8), matWood);
-    millBody.position.set(0, 10, 0);
+    // ===== ПОЧТА (отдельно) =====
+    function makePostOffice(x, z) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 7),
+        new THREE.MeshStandardMaterial({ color:0x6a6a6a, roughness:1 }));
+      body.position.y = 3;
+      body.castShadow = body.receiveShadow = true;
+      g.add(body);
 
-    const millBlades = new THREE.Group();
-    for (let i = 0; i < 3; i++) {
-      const blade = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 5), matDark);
-      blade.position.set(0, 0, 0);
-      blade.rotation.set(0, i * (Math.PI / 3), 0);
-      millBlades.add(blade);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(6.2, 3.5, 4),
+        new THREE.MeshStandardMaterial({ color:0x2c2c34, roughness:1 }));
+      roof.position.y = 7.6;
+      roof.rotation.y = Math.PI/4;
+      roof.castShadow = roof.receiveShadow = true;
+      g.add(roof);
+
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(5.8, 1.8, 4),
+        new THREE.MeshStandardMaterial({ color:0xf0f4f8, roughness:1 }));
+      cap.position.y = 8.4;
+      cap.rotation.y = Math.PI/4;
+      cap.castShadow = cap.receiveShadow = true;
+      g.add(cap);
+
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(3, 1, .2), new THREE.MeshStandardMaterial({ color:0x4a423a, roughness:1 }));
+      sign.position.set(0, 4.5, 3.6);
+      sign.castShadow = sign.receiveShadow = true;
+      g.add(sign);
+
+      g.position.set(x, 0, z);
+      scene.add(g);
+      return g;
     }
-    mill.add(millBody, millBlades);
-    mill.position.set(-20, 15, -20);
-    scene.add(mill);
+    makePostOffice(-12, -22);
 
-    // ===== ОЗЕРО =====
-    const lake = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x99ccff, roughness: 1 }));
-    lake.rotation.x = -Math.PI/2;
-    lake.position.set(0, -45, 0);
-    scene.add(lake);
-
-    // ===== СТОЛБЫ И ФОНАРИ =====
-    function pole(x, z) {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 10), matDark);
-      p.position.set(x, 0, z);
-      scene.add(p);
+    // ===== СНЕГОПАД (частицы) =====
+    const snowCount = 2000;
+    const snowGeo = new THREE.BufferGeometry();
+    const snowVerts = ;
+    for (let i=0; i<snowCount; i++) {
+      snowVerts.push((Math.random()-0.5)*300);
+      snowVerts.push(Math.random()*100);
+      snowVerts.push((Math.random()-0.5)*300);
     }
-    [[-25, -25], [25, -25], [-25, 25], [25, 25]].forEach(p => pole(p[0], p[1]));
+    snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowVerts, 3));
+    const snowMat = new THREE.PointsMaterial({ color:0xffffff, size:0.08 });
+    const snow = new THREE.Points(snowGeo, snowMat);
+    scene.add(snow);
 
-    function lamp(x, z) {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), matDark);
-      l.position.set(x, 1, z);
-      scene.add(l);
+    // ===== УПРАВЛЕНИЕ (WASD + мышь) =====
+    const keys = { w:false, a:false, s:false, d:false };
+    const mouse = { x:0, y:0, dx:0, dy:0 };
+    let yaw = 0, pitch = 0;
+    const speed = 0.12;
+    const sens = 0.002;
+
+    document.addEventListener('keydown', e => {
+      if (e.code==='KeyW') keys.w = true;
+      if (e.code==='KeyA') keys.a = true;
+      if (e.code==='KeyS') keys.s = true;
+      if (e.code==='KeyD') keys.d = true;
+    });
+    document.addEventListener('keyup', e => {
+      if (e.code==='KeyW') keys.w = false;
+      if (e.code==='KeyA') keys.a = false;
+      if (e.code==='KeyS') keys.s = false;
+      if (e.code==='KeyD') keys.d = false;
+    });
+
+    document.addEventListener('mousemove', e => {
+      mouse.dx = (e.clientX - innerWidth/2) * sens;
+      mouse.dy = (e.clientY - innerHeight/2) * sens;
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === document.body) {
+        document.body.requestPointerLock();
+      }
+    });
+
+    function updateCamera() {
+      yaw += mouse.dx;
+      pitch += mouse.dy;
+      pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+
+      const dir = new THREE.Vector3();
+      dir.x = Math.sin(yaw);
+      dir.z = -Math.cos(yaw);
+      dir.normalize();
+
+      const right = new THREE.Vector3();
+      right.copy(dir).cross(new THREE.Vector3(0,1,0)).normalize();
+
+      if (keys.w) { camera.position.addScaledVector(dir, speed); }
+      if (keys.s) { camera.position.subScaledVector(dir, speed); }
+      if (keys.a) { camera.position.addScaledVector(right, speed); }
+      if (keys.d) { camera.position.subScaledVector(right, speed); }
+
+      camera.lookAt(
+        camera.position.x + dir.x,
+        camera.position.y,
+        camera.position.z + dir.z
+      );
+
+      mouse.dx = mouse.dy = 0;
     }
-    [[-20, -20], [20, -20], [-20, 20], [20, 20]].forEach(p => lamp(p[0], p[1]));
 
-    // ===== АНИМАЦИЯ И РЕНДЕР =====
-    const clock = new THREE.Clock();
-    let time = 0;
-
+    // ===== АНИМАЦИЯ =====
     function animate() {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      time += delta;
+      updateCamera();
 
-      // Вращение лопастей мельницы
-      millBlades.rotation.z = time * 0.1;
+      // Анимация снега
+      const pos = snow.geometry.attributes.position;
+      for (let i=0; i<pos.count; i++) {
+        pos.setY(i, pos.getY(i) - 0.05);
+        if (pos.getY(i) < -10) pos.setY(i, Math.random()*100);
+      }
+      pos.needsUpdate = true;
 
       renderer.render(scene, camera);
     }
 
-    animate();
+    // Клик для захвата мыши
+    document.body.addEventListener('click', () => {
+      document.body.requestPointerLock();
+    });
 
     // Закрытие панели
     document.getElementById('panel-close').addEventListener('click', () => {
       document.getElementById('panel').style.display = 'none';
     });
+
+    // Обработка PointerLock
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement !== document.body) {
+        document.body.requestPointerLock();
+      }
+    });
+
+    animate();
   </script>
 </body>
 </html>
