@@ -1,42 +1,172 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Зимняя деревня: 41 день до чуда</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-        #game-container {
-            width: 100%;
-            height: 100%;
-            max-width: 800px;
-            max-height: 1600px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #game {
-            width: 100%;
-            height: 100%;
-            max-width: 800px;
-            max-height: 1600px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Зимняя деревня: 41 день до чуда</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:#0b1026; overflow:hidden; }
+  body { font-family:sans-serif; touch-action:manipulation; }
+  #game { display:block; width:100vw; height:100vh; }
+  #ui {
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    width:min(92vw,480px); background:rgba(12,18,40,.85);
+    border:1px solid #3a4a80; border-radius:14px; padding:12px 14px;
+    color:#e8f0ff; display:none;
+  }
+  #ui h3 { font-size:16px; margin-bottom:6px; color:#ffd86b; }
+  #ui p { font-size:13px; line-height:1.45; }
+  #btn {
+    margin-top:10px; width:100%; padding:10px; border:0; border-radius:10px;
+    background:#2e7ad0; color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+  }
+  #btn:active { background:#256bb8; }
+  #topbar {
+    position:fixed; top:10px; left:50%; transform:translateX(-50%);
+    background:rgba(12,18,40,.8); border:1px solid #3a4a80; border-radius:10px;
+    padding:6px 14px; color:#ffd86b; font-size:13px; display:none;
+  }
+</style>
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="game"></canvas>
-    </div>
+<canvas id="game"></canvas>
+<div id="topbar">❄ Метельск · День <span id="dayNum">1</span>/41</div>
+<div id="ui">
+  <h3 id="uiTitle">Метельск</h3>
+  <p id="uiText">Нажми «Начать», чтобы войти в деревню.</p>
+  <button id="btn">Начать</button>
+</div>
 
-    <script src="dist/game.js"></script>
+<script>
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+let W, H;
+function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+// --- состояние игры ---
+let day = 1;
+let started = false;
+let snow = [];
+for (let i = 0; i < 120; i++) snow.push({
+  x: Math.random()*1, y: Math.random()*1,
+  r: 1 + Math.random()*2.5, s: 0.15 + Math.random()*0.5
+});
+
+const days = {
+  1: ['День 1: Прибытие', 'Туман скрывает деревню. Ты нашёл письмо почтальона: «Деревне осталось 41 день. Кто зажжёт звезду на ёлке — спасёт всех».'],
+  2: ['День 2: Немые колокола', 'Задание: найди три колокольчика на колокольне и верни им звон.'],
+  3: ['День 3: Пропавшая кошка', 'Ткачиха просит найти её кошку. Осмотри сеновал и колодец.'],
+  4: ['День 4: Старый мельник', 'Мельница крутится сама. Послушай историю мельника.'],
+  5: ['День 5: Замёрзший ручей', 'Собери 5 тлеющих угольков, чтобы растопить лёд.'],
+  6: ['День 6: Туман отступает', 'Глава завершена! Получен Осколок № 1. Открыта дорога в лес.']
+};
+
+// --- сцена: деревня ---
+function drawScene(t){
+  // небо
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0b1026'); g.addColorStop(0.7,'#1a2447'); g.addColorStop(1,'#2a3358');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  // луна
+  ctx.fillStyle = '#f4f0d8';
+  ctx.beginPath(); ctx.arc(W*0.8, H*0.15, Math.min(W,H)*0.05, 0, 7); ctx.fill();
+
+  // ёлка на площади
+  const cx = W*0.5, base = H*0.75;
+  ctx.fillStyle = '#12351f';
+  const tr = Math.min(W,H)*0.16;
+  for (let i=0;i<3;i++){
+    const y = base - i*tr*0.8, w = tr*(1.4 - i*0.35);
+    ctx.beginPath();
+    ctx.moveTo(cx, y - tr*0.9);
+    ctx.lineTo(cx + w, y);
+    ctx.lineTo(cx - w, y);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#4a2f1d';
+  ctx.fillRect(cx - tr*0.1, base, tr*0.2, tr*0.4);
+
+  // домики по краям
+  function house(x, w, h, light){
+    ctx.fillStyle = '#1c2540';
+    ctx.fillRect(x - w/2, base + tr*0.1 - h, w, h);
+    ctx.fillStyle = '#263352';
+    ctx.beginPath();
+    ctx.moveTo(x - w/2 - w*0.08, base + tr*0.1 - h);
+    ctx.lineTo(x, base + tr*0.1 - h - w*0.35);
+    ctx.lineTo(x + w/2 + w*0.08, base + tr*0.1 - h);
+    ctx.closePath(); ctx.fill();
+    if (light){ ctx.fillStyle = '#ffd86b'; ctx.fillRect(x - w*0.12, base - h*0.45, w*0.12, h*0.16); }
+  }
+  house(W*0.15, Math.min(W,H)*0.18, Math.min(W,H)*0.14, true);
+  house(W*0.85, Math.min(W,H)*0.18, Math.min(W,H)*0.14, true);
+
+  // туман
+  ctx.fillStyle = 'rgba(160,175,205,0.14)';
+  for (let i=0;i<3;i++){
+    ctx.beginPath();
+    ctx.ellipse(W*0.5, base + tr*0.2 + i*18 + Math.sin(t/2000+i)*6, W*0.6, 16, 0, 0, 7);
+    ctx.fill();
+  }
+
+  // снег
+  ctx.fillStyle = '#eaf2ff';
+  snow.forEach(f=>{
+    f.y += f.s/500;
+    if (f.y > 1.02){ f.y = -0.02; f.x = Math.random(); }
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(f.x*W + Math.sin(t/1500+f.r*10)*8, f.y*H, f.r, 0, 7);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // звезда над ёлкой
+  ctx.fillStyle = '#ffe08a';
+  ctx.font = Math.min(W,H)*0.05+'px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('★', cx, base - tr*3.2);
+}
+
+// --- интерфейс ---
+const ui = document.getElementById('ui');
+const btn = document.getElementById('btn');
+const topbar = document.getElementById('topbar');
+
+btn.addEventListener('click', ()=>{
+  if (!started){
+    started = true;
+    topbar.style.display = 'block';
+    showDay();
+  } else {
+    const info = days[day];
+    if (info && day < 6){
+      day++;
+      document.getElementById('dayNum').textContent = day;
+      showDay();
+    } else {
+      ui.style.display = 'none';
+    }
+  }
+});
+
+function showDay(){
+  const info = days[day] || ['День '+day, 'Квест ещё не готов. Приходи завтра!'];
+  document.getElementById('uiTitle').textContent = info[0];
+  document.getElementById('uiText').textContent = info[1];
+  btn.textContent = day < 6 ? 'Следующий день →' : 'Отлично!';
+  ui.style.display = 'block';
+}
+
+// --- цикл ---
+function loop(t){
+  drawScene(t);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
