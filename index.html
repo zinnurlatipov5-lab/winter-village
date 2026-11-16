@@ -1,407 +1,216 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Зимняя деревня: Метельск</title>
-<style>
-  body { margin:0; overflow:hidden; background:#2b3a4d; touch-action:none; font-family:Arial,sans-serif; }
-  #quest-hint { position:fixed; top:10px; left:50%; transform:translateX(-50%);
-    color:#dfe8f2; background:rgba(20,30,45,.75); padding:8px 14px; border-radius:8px;
-    font-size:14px; z-index:20; pointer-events:none; max-width:90%; text-align:center; }
-  #panel { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    background:#f4ecd8; color:#2b2114; padding:18px; border-radius:10px;
-    max-width:300px; max-height:70vh; overflow-y:auto; font-size:14px; line-height:1.5;
-    display:none; z-index:30; box-shadow:0 6px 20px rgba(0,0,0,.5); white-space:pre-line; }
-  #panel-close { margin-top:12px; padding:8px 18px; background:#7a5c3e; color:#fff;
-    border:none; border-radius:6px; width:100%; font-size:14px; }
-  #joy { position:fixed; bottom:30px; left:25px; width:130px; height:130px; border-radius:65px;
-    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); z-index:20; }
-  #knob { position:absolute; left:40px; top:40px; width:50px; height:50px; border-radius:25px;
-    background:rgba(255,255,255,.35); border:2px solid #fff; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Зимняя деревня: Метельск</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#2b3a4d; touch-action:none; font-family:Arial,sans-serif; }
+    #quest-hint {
+      position:fixed; top:10px; left:50%; transform:translateX(-50%);
+      color:#dfe8f2; background:rgba(20,30,45,.75); padding:8px 14px; border-radius:8px;
+      font-size:14px; z-index:20; pointer-events:none; max-width:90%; text-align:center;
+    }
+    #panel {
+      position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+      background:#f4ecd8; color:#2b2114; padding:18px; border-radius:10px;
+      max-width:300px; max-height:70vh; overflow-y:auto; font-size:14px; line-height:1.5;
+      display:none; z-index:30; box-shadow:0 6px 20px rgba(0,0,0,.5); white-space:pre-line;
+    }
+    #panel-close {
+      margin-top:12px; padding:8px 18px; background:#7a5c3e; color:#fff;
+      border:none; border-radius:6px; width:100%; font-size:14px; cursor:pointer;
+    }
+    #joy {
+      position:fixed; bottom:30px; left:25px; width:130px; height:130px; border-radius:65px;
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); z-index:20;
+    }
+    #knob {
+      position:absolute; left:40px; top:40px; width:50px; height:50px; border-radius:25px;
+      background:rgba(255,255,255,.35); border:2px solid #fff;
+    }
+  </style>
 </head>
 <body>
-<div id="quest-hint">Пройди по дороге к центру деревни. Найди письмо на пороге дома.</div>
-<div id="panel"></div>
-<div id="joy"><div id="knob"></div></div>
+  <div id="quest-hint">Пройди по дороге к центру деревни. Найди письмо на пороге дома.</div>
+  <div id="panel"><button id="panel-close">Закрыть</button></div>
+  <div id="joy"><div id="knob"></div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-// ===== СЦЕНА: глава 1, серо-синяя гамма, туман =====
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2b3a4d);
-scene.fog = new THREE.Fog(0x2b3a4d, 12, 55);
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ===== СЦЕНА, СВЕТ, КАМЕРА =====
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x2b3a4d);
+    scene.fog = new THREE.Fog(0x2b3a4d, 12, 55);
 
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 300);
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(innerWidth, innerHeight);
-document.body.appendChild(renderer.domElement);
+    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 300);
+    camera.position.set(15, 10, 25);
+    camera.lookAt(0, 0, 0);
 
-scene.add(new THREE.AmbientLight(0x8a99b0, 0.75));
-const moon = new THREE.DirectionalLight(0xcdd6ff, 0.65);
-moon.position.set(-10, 25, 5);
-scene.add(moon);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-const matSnow  = new THREE.MeshStandardMaterial({ color:0xdde6ee, roughness:1 });
-const matDrift = new THREE.MeshStandardMaterial({ color:0xe8eff6, roughness:1 });
-const matRoad  = new THREE.MeshStandardMaterial({ color:0xbfc9d4, roughness:1 });
-const matWood  = new THREE.MeshStandardMaterial({ color:0x3a3129, roughness:1 });
-const matDark  = new THREE.MeshStandardMaterial({ color:0x151a20, roughness:1 });
+    scene.add(new THREE.AmbientLight(0x8a99b0, 0.75));
+    const moon = new THREE.DirectionalLight(0xcdd6ff, 0.65);
+    moon.position.set(-10, 25, 5);
+    scene.add(moon);
 
-// ===== ЗЕМЛЯ =====
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), matSnow);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
+    // ===== ТЕКСТУРЫ =====
+    const loader = new THREE.TextureLoader();
+    // Если нет картинок — замени map на color в материалах ниже
+    const snowTexture = loader.load('snow.png');
+    snowTexture.wrapS = snowTexture.wrapT = THREE.RepeatWrapping;
 
-// ===== ДОРОГА: извилистая протоптанная лента через деревню =====
-function roadSegment(x1,z1,x2,z2,w) {
-  const dx=x2-x1, dz=z2-z1, len=Math.hypot(dx,dz);
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), matRoad);
-  m.rotation.x = -Math.PI/2;
-  m.rotation.z = Math.atan2(dx, dz);   // вдоль направления
-  m.position.set((x1+x2)/2, 0.02, (z1+z2)/2);
-  scene.add(m);
-}
-// главная улица: юг -> площадь -> почта/лавка -> мельница
-roadSegment(0, 60, 2, 20, 4);
-roadSegment(2, 20, 0, -5, 4);      // к площади
-roadSegment(0, -5, -2, -18, 4);    // к ёлке
-roadSegment(-2, -18, -12, -20, 3); // к почте
-roadSegment(0, -5, 14, -8, 3);     // к лавке
-roadSegment(-2, -18, -30, -40, 3); // дорога на запад к мельнице
-roadSegment(2, -18, 30, -38, 3);   // дорога на восток к озеру
-roadSegment(0, -18, 0, -42, 3);    // вглубь деревни
+    const snowdriftTexture = loader.load('snowdrift.png');
+    snowdriftTexture.wrapS = snowdriftTexture.wrapT = THREE.RepeatWrapping;
 
-// сугробы вдоль дороги
-function drift(x, z, s) {
-  const d = new THREE.Mesh(new THREE.SphereGeometry(s, 6, 4), matDrift);
-  d.scale.y = 0.35; d.position.set(x, 0.1, z);
-  scene.add(d);
-}
-const driftSpots = [[-4,50],[5,42],[-6,30],[6,10],[-5,-2],[7,-12],[-6,-24],[9,-16],[-8,-34],[12,-30],[-16,-28],[20,-34]];
-driftSpots.forEach(p => drift(p[0], p[1], 1 + Math.random()*1.5));
+    const woodTexture = loader.load('wood.png');
+    woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
 
-// ===== ДОМА: заброшенные, со снежными шапками и тёмными окнами =====
-function makeHouse(x, z, color, rot) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(6,5,6),
-    new THREE.MeshStandardMaterial({ color, roughness:1 }));
-  body.position.y = 2.5;
-  // тёмные окна — деревня почти пустая
-  const winMat = new THREE.MeshStandardMaterial({ color:0x0d1116, roughness:.6 });
-  const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-  w1.position.set(-1.5, 2.5, 3.05);
-  const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-  w2.position.set(1.5, 2.5, 3.05);
-  const w3 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
-  w3.position.set(0, 2.5, 3.05);
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(5,3,4),
-    new THREE.MeshStandardMaterial({ color:0x2c2c34, roughness:1 }));
-  roof.position.y = 6.5; roof.rotation.y = Math.PI/4;
-  // снежная шапка на крыше
-  const cap = new THREE.Mesh(new THREE.ConeGeometry(4.7,1.6,4),
-    new THREE.MeshStandardMaterial({ color:0xf2f6fa, roughness:1 }));
-  cap.position.y = 7.2; cap.rotation.y = Math.PI/4;
-  // труба
-  const pipe = new THREE.Mesh(new THREE.BoxGeometry(.8,2,.8), matDark);
-  pipe.position.set(1.6, 6.4, 0);
-  // крыльцо
-  const porch = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.4,1.2), matWood);
-  porch.position.set(0, 0.2, 3.4);
-  g.add(body, w1, w2, w3, roof, cap, pipe, porch);
-  g.position.set(x,0,z); g.rotation.y = rot||0;
-  scene.add(g);
-  return g;
-}
-// 9 домов деревни + почта + лавка
-const houseColors=[0x4d5a63,0x5d5348,0x465a4f,0x5a4d5a,0x4d4a5a,0x5a5d4d,0x50463d,0x3d4d55,0x554d5d];
-const houseSpots=[[-20,-10],[20,-10],[-30,-30],[30,-30],[-15,-45],[15,-45],[0,-55],[-35,-15],[35,-15]];
-houseSpots.forEach((p,i)=> makeHouse(p[0], p[1], houseColors[i]));
-makeHouse(-12, -22, 0x6b7a85, 0); // почта (у дороги)
-makeHouse(14, -10, 0x7a6650, 0);  // лавка
+    const windowTexture = loader.load('window.png');
+    const brickTexture = loader.load('brick.png');
+    const roofTexture = loader.load('roof.png');
 
-// заборы вдоль улицы
-function fence(x1,z1,x2,z2) {
-  const dx=x2-x1, dz=z2-z1, len=Math.hypot(dx,dz), n=Math.round(len/2);
-  for (let i=0;i<=n;i++) {
-    const t=i/n;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(.15,1.2,.15), matWood);
-    post.position.set(x1+dx*t, .6, z1+dz*t);
-    scene.add(post);
-  }
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(len,.1,.08), matWood);
-  rail.position.set((x1+x2)/2,.9,(z1+z2)/2);
-  rail.rotation.y = Math.atan2(dz,dx);
-  scene.add(rail);
-}
-fence(-8, 30, -8, 8);
-fence(10, 8, 10, 30);
-fence(-10, -14, -6, -14);
-fence(6, -14, 10, -14);
+    const matSnow = new THREE.MeshStandardMaterial({ color: 0xdde6ee, roughness: 1, map: snowTexture });
+    const matDrift = new THREE.MeshStandardMaterial({ color: 0xe8eff6, roughness: 1, map: snowdriftTexture });
+    const matRoad = new THREE.MeshStandardMaterial({ color: 0xbfc9d4, roughness: 1 });
+    const matWood = new THREE.MeshStandardMaterial({ color: 0x3a3129, roughness: 1, map: woodTexture });
+    const matDark = new THREE.MeshStandardMaterial({ color: 0x151a20, roughness: 1 });
+    const matBrick = new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 1, map: brickTexture });
+    const matRoof = new THREE.MeshStandardMaterial({ color: 0x2c2c34, roughness: 1, map: roofTexture });
 
-// ===== КОЛОДЕЦ =====
-const well = new THREE.Group();
-const wellBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.5,1.6,10),
-  new THREE.MeshStandardMaterial({ color:0x5a5048, roughness:1 }));
-wellBody.position.y=.8;
-const wellRoof = new THREE.Mesh(new THREE.ConeGeometry(1.8,1.2,4),
-  new THREE.MeshStandardMaterial({ color:0x2c2c34, roughness:1 }));
-wellRoof.position.y=3.4; wellRoof.rotation.y=Math.PI/4;
-well.add(wellBody, wellRoof);
-well.position.set(3, 0, -20);
-scene.add(well);
+    // ===== ЗЕМЛЯ И ДОРОГА =====
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), matSnow);
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
 
-// ===== ПЛОЩАДЬ: голый ствол ёлки без звезды =====
-const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.5,.9,12,8),
-  new THREE.MeshStandardMaterial({ color:0x3a3230, roughness:1 }));
-trunk.position.set(0, 6, -35);
-scene.add(trunk);
-
-// ===== МЕЛЬНИЦА на западе (на холме) с лопастями =====
-const mill = new THREE.Group();
-const millBody = new THREE.Mesh(new THREE.CylinderGeometry(3,4,14,8),
-  new THREE.MeshStandardMaterial({ color:0x4a3b2e, roughness:1 }));
-millBody.position.y=7;
-const millRoof = new THREE.Mesh(new THREE.ConeGeometry(4,3.5,8),
-  new THREE.MeshStandardMaterial({ color:0x2c2c34, roughness:1 }));
-millRoof.position.y=15.7;
-const blades = new THREE.Group();
-for (let i=0;i<4;i++) {
-  const b = new THREE.Mesh(new THREE.BoxGeometry(.4,10,1.4),
-    new THREE.MeshStandardMaterial({ color:0x54432f, roughness:1 }));
-  b.position.y=5; 
-  const holder = new THREE.Group();
-  holder.rotation.z = i*Math.PI/2;
-  holder.add(b);
-  blades.add(holder);
-}
-blades.position.set(0, 9, 4.2);
-mill.add(millBody, millRoof, blades);
-const hill = new THREE.Mesh(new THREE.SphereGeometry(16,8,6), matSnow);
-hill.scale.y=.35; hill.position.set(-48,-.5,-60);
-mill.position.set(-48, 0, -60);
-scene.add(hill, mill);
-
-// ===== ОЗЕРО Тихое на востоке =====
-const lake = new THREE.Mesh(new THREE.CircleGeometry(30, 24),
-  new THREE.MeshStandardMaterial({ color:0x9fb6c8, roughness:.4, metalness:.1 }));
-lake.rotation.x=-Math.PI/2;
-lake.position.set(60, 0.03, -10);
-scene.add(lake);
-
-// ===== ЛЕС Двоеборье на севере: мёртвые ели =====
-function tree(x, z) {
-  const g = new THREE.Group();
-  const t = new THREE.Mesh(new THREE.CylinderGeometry(.2,.35,6,5), matDark);
-  t.position.y=3;
-  const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.4,5,6),
-    new THREE.MeshStandardMaterial({ color:0x2e3b34, roughness:1 }));
-  c1.position.y=6;
-  const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.7,4,6),
-    new THREE.MeshStandardMaterial({ color:0x2e3b34, roughness:1 }));
-  c2.position.y=9;
-  const cap = new THREE.Mesh(new THREE.ConeGeometry(2.2,1.4,6),
-    new THREE.MeshStandardMaterial({ color:0xf2f6fa, roughness:1 }));
-  cap.position.y=7.6;
-  g.add(t,c1,c2,cap);
-  g.position.set(x,0,z);
-  g.scale.setScalar(.8+Math.random()*.5);
-  scene.add(g);
-}
-// лес стеной на севере
-for (let i=0;i<14;i++) tree(-70+i*11+Math.random()*4, -75-Math.random()*8);
-// редкие деревья в деревне
-tree(-26,-2); tree(28,-18); tree(-24,-50); tree(24,-48); tree(8,-58);
-
-// столбы с провисшим проводом
-function pole(x,z) {
-  const p = new THREE.Mesh(new THREE.CylinderGeometry(.12,.15,6,6), matWood);
-  p.position.set(x,3,z);
-  scene.add(p);
-}
-pole(-6,40); pole(-6,10); pole(-4,-10); pole(-4,-30);
-const wire = new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,30,4), matDark);
-wire.rotation.z=Math.PI/2; wire.rotation.y=1.35; wire.position.set(-5,5.4,15);
-scene.add(wire);
-
-// фонари вдоль дороги (не горят — Тишина)
-function lantern(x,z) {
-  const g = new THREE.Group();
-  const st = new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,3.4,6), matDark);
-  st.position.y=1.7;
-  const lm = new THREE.Mesh(new THREE.BoxGeometry(.5,.6,.5),
-    new THREE.MeshStandardMaterial({ color:0x1a1d22, roughness:.5 }));
-  lm.position.y=3.6;
-  g.add(st, lm); g.position.set(x,0,z);
-  scene.add(g);
-}
-lantern(-3.5, 25); lantern(4.5, 8); lantern(-4, -8); lantern(5, -25); lantern(-5, -38);
-
-// ===== КВЕСТ ДНЯ 21: письмо на пороге =====
-const letter = new THREE.Mesh(new THREE.BoxGeometry(1.2,.1,.8),
-  new THREE.MeshStandardMaterial({ color:0xf5f0e0, emissive:0x554422 }));
-letter.position.set(18.5, .45, -6.2); // у дома [20,-10]
-scene.add(letter);
-
-// дневник у почты — после письма
-const diary = new THREE.Mesh(new THREE.BoxGeometry(.8,.2,.6),
-  new THREE.MeshStandardMaterial({ color:0x3a2a1a }));
-diary.position.set(-10.2, .35, -19.2);
-diary.visible=false;
-scene.add(diary);
-const marker = new THREE.Mesh(new THREE.ConeGeometry(.4,1,8),
-  new THREE.MeshBasicMaterial({ color:0xffd54f }));
-marker.position.set(-10.2, 3, -19.2);
-marker.rotation.x=Math.PI; marker.visible=false;
-scene.add(marker);
-
-// ===== СНЕГ =====
-const snowflakes=[];
-for (let i=0;i<250;i++) {
-  const f=new THREE.Mesh(new THREE.SphereGeometry(.15,4,4),
-    new THREE.MeshBasicMaterial({ color:0xffffff }));
-  f.position.set((Math.random()-.5)*160, Math.random()*40, (Math.random()-.5)*160);
-  snowflakes.push(f); scene.add(f);
-}
-
-// ===== УПРАВЛЕНИЕ =====
-let yaw=0, pitch=-.1;
-const player=new THREE.Vector3(0,1.6,45);
-let joyVec={x:0,y:0}, lookTouch=null, joyTouch=null;
-const joyCenter={x:0,y:0};
-const knob=document.getElementById('knob');
-const joyEl=document.getElementById('joy');
-
-joyEl.addEventListener('touchstart', e=>{
-  e.preventDefault();
-  joyTouch=e.changedTouches[0].identifier;
-  const r=joyEl.getBoundingClientRect();
-  joyCenter.x=r.left+65; joyCenter.y=r.top+65;
-},{passive:false});
-
-document.addEventListener('touchstart', e=>{
-  for (const t of e.changedTouches) {
-    if (joyTouch!==null && t.identifier===joyTouch) continue;
-    if (lookTouch===null)
-      lookTouch={id:t.identifier,x:t.clientX,y:t.clientY,sx:t.clientX,sy:t.clientY,t0:Date.now()};
-  }
-},{passive:false});
-
-document.addEventListener('touchmove', e=>{
-  for (const t of e.changedTouches) {
-    if (t.identifier===joyTouch) {
-      let dx=t.clientX-joyCenter.x, dy=t.clientY-joyCenter.y;
-      const len=Math.hypot(dx,dy);
-      if (len>50){dx=dx/len*50;dy=dy/len*50;}
-      knob.style.transform=`translate(${dx}px,${dy}px)`;
-      joyVec={x:dx/50,y:dy/50};
-    } else if (lookTouch && t.identifier===lookTouch.id) {
-      yaw-=(t.clientX-lookTouch.x)*.005;
-      pitch=Math.max(-1,Math.min(.8,pitch-(t.clientY-lookTouch.y)*.005));
-      lookTouch.x=t.clientX; lookTouch.y=t.clientY;
+    function roadSegment(x1, z1, x2, z2, w) {
+      const dx = x2 - x1, dz = z2 - z1, len = Math.hypot(dx, dz);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), matRoad);
+      m.rotation.x = -Math.PI / 2;
+      m.rotation.z = Math.atan2(dx, dz);
+      m.position.set((x1 + x2) / 2, 0.02, (z1 + z2) / 2);
+      scene.add(m);
     }
-  }
-},{passive:false});
 
-document.addEventListener('touchend', e=>{
-  for (const t of e.changedTouches) {
-    if (t.identifier===joyTouch){joyTouch=null;joyVec={x:0,y:0};knob.style.transform='translate(0,0)';}
-    if (lookTouch && t.identifier===lookTouch.id) {
-      if (Math.abs(t.clientX-lookTouch.sx)<15 && Math.abs(t.clientY-lookTouch.sy)<15 && Date.now()-lookTouch.t0<400)
-        tryInteract(t.clientX,t.clientY);
-      lookTouch=null;
+    roadSegment(0, 60, 2, 20, 4);
+    roadSegment(2, 20, 0, -5, 4);
+    roadSegment(0, -5, -2, -18, 4);
+    roadSegment(-2, -18, -12, -20, 3);
+    roadSegment(0, -5, 14, -8, 3);
+    roadSegment(-2, -18, -30, -40, 3);
+    roadSegment(2, -18, 30, -38, 3);
+    roadSegment(0, -18, 0, -42, 3);
+
+    // Сугробы
+    function drift(x, z, s) {
+      const d = new THREE.Mesh(new THREE.SphereGeometry(s, 6, 4), matDrift);
+      d.scale.y = 0.35;
+      d.position.set(x, 0.1, z);
+      scene.add(d);
     }
-  }
-});
+    const driftSpots = [[-4,50],[5,42],[-6,30],[6,10],[-5,-2],[7,-12],[-6,-24],[9,-16],[-8,-34],[12,-30],[-16,-28],[20,-34]];
+    driftSpots.forEach(p => drift(p[0], p[1], 1 + Math.random()*1.5));
 
-// ===== ВЗАИМОДЕЙСТВИЕ =====
-let questStep=0;
-const hint=document.getElementById('quest-hint');
-const panel=document.getElementById('panel');
-const LETTER_TEXT=`Здравствуй, гость.
+    // ===== ДОМА =====
+    function makeHouse(x, z, color, rot) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(6,5,6), matBrick);
+      body.position.y = 2.5;
 
-Если ты читаешь это — значит, ты ещё слышишь своё дыхание. Уже хорошо.
+      const winMat = new THREE.MeshStandardMaterial({ color:0x0d1116, roughness:.6, map: windowTexture });
+      const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
+      w1.position.set(-1.5, 2.5, 3.05);
+      const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
+      w2.position.set(1.5, 2.5, 3.05);
+      const w3 = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,.2), winMat);
+      w3.position.set(0, 2.5, 3.05);
 
-В Метельске каждую зиму что-то исчезает. В этом году первым ушли звуки. Колокола молчат, собаки не лают, и даже ветер здесь ходит на цыпочках.
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(5,3,4), matRoof);
+      roof.position.y = 6.5;
+      roof.rotation.y = Math.PI/4;
 
-Говорят, если собрать все шесть Осколков праздника и зажечь ими звезду на ёлке — Тишина отступит.
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(4.7,1.6,4), new THREE.MeshStandardMaterial({ color:0xf2f6fa, roughness:1 }));
+      cap.position.y = 7.2;
+      cap.rotation.y = Math.PI/4;
 
-Начни с почты. Там тебя ждёт дневник почтальона. Только не читай последнюю запись вслух.
+      const pipe = new THREE.Mesh(new THREE.BoxGeometry(.8,2,.8), matDark);
+      pipe.position.set(1.6, 6.4, 0);
 
-— Т.`;
-const DIARY_TEXT=`Дневник почтальона. Записи за декабрь.
+      const porch = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.4,1.2), matWood);
+      porch.position.set(0, 0.2, 3.4);
 
-1. Ярмарка была шумной. Впервые за много лет.
-2. Вчера пропало эхо. Искал его у мельницы — не нашёл.
-3. Пётр не выходит из-за жернова. Мельница крутится сама.
-4. Гоша открыл лавку. Товаров нет, но лавка «полная».
-5. Дети перестали смеяться. Просто перестали.
-6. Соседи жалуются: перестают слышать собственные шаги.
-7. Ночью смотрел в окно — во дворе стоял туман в форме человека.
-8. Туман подходит всё ближе. Если он дойдёт до моей двери, я не успе
+      g.add(body, w1, w2, w3, roof, cap, pipe, porch);
+      g.position.set(x,0,z);
+      g.rotation.y = rot || 0;
+      scene.add(g);
+      return g;
+    }
 
-(запись обрывается на середине слова)`;
-panel.innerHTML='<div id="panel-content"></div><button id="panel-close" onclick="closePanel()">Закрыть</button>';
-window.closePanel=function(){
-  panel.style.display='none';
-  if (panel.dataset.on==='letter'){
-    panel.dataset.on=''; questStep=1;
-    diary.visible=true; marker.visible=true;
-    hint.textContent='Иди к почте — там лежит дневник почтальона.';
-  } else if (panel.dataset.on==='diary'){
-    panel.dataset.on=''; questStep=2; marker.visible=false;
-    hint.textContent='Квест дня 21 «Письмо» пройден! +1 монетка праздника';
-  }
-};
-const raycaster=new THREE.Raycaster();
-function tryInteract(x,y){
-  if (panel.style.display==='block') return;
-  raycaster.setFromCamera(new THREE.Vector2((x/innerWidth)*2-1,-(y/innerHeight)*2+1),camera);
-  const targets=[];
-  if (questStep===0) targets.push(letter);
-  if (questStep===1) targets.push(diary);
-  const hits=raycaster.intersectObjects(targets);
-  if (!hits.length) return;
-  if (hits[0].object.position.distanceTo(player)>5){hint.textContent='Подойди ближе.';return;}
-  if (hits[0].object===letter){
-    panel.querySelector('#panel-content').textContent=LETTER_TEXT;
-    panel.dataset.on='letter'; panel.style.display='block';
-  } else if (hits[0].object===diary){
-    panel.querySelector('#panel-content').textContent=DIARY_TEXT;
-    panel.dataset.on='diary'; panel.style.display='block';
-  }
-}
+    const houseColors = [0x4d5a63,0x5d5348,0x465a4f,0x5a4d5a,0x4d4a5a,0x5a5d4d,0x50463d,0x3d4d55,0x554d5d];
+    const houseSpots = [[-20,-10],[20,-10],[-30,-30],[30,-30],[-15,-45],[15,-45],[0,-55],[-35,-15],[35,-15]];
+    houseSpots.forEach((p,i) => makeHouse(p[0], p[1], houseColors[i]));
+    makeHouse(-12, -22, 0x6b7a85, 0); // почта
 
-// ===== ЦИКЛ =====
-const clock=new THREE.Clock();
-function animate(){
-  requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),.05);
-  const speed=5;
-  const fwd=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0,yaw,0));
-  const right=new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0,yaw,0));
-  player.addScaledVector(fwd,-joyVec.y*speed*dt);
-  player.addScaledVector(right,joyVec.x*speed*dt);
-  player.x=Math.max(-85,Math.min(90,player.x));
-  player.z=Math.max(-80,Math.min(70,player.z));
-  camera.position.set(player.x,1.6,player.z);
-  camera.rotation.order='YXZ';
-  camera.rotation.y=yaw; camera.rotation.x=pitch;
-  snowflakes.forEach(f=>{f.position.y-=.1;if(f.position.y<0)f.position.y=40;});
-  letter.rotation.y+=.02;
-  letter.material.emissive.setScalar(.2+.15*Math.sin(Date.now()*.004));
-  if (marker.visible) marker.position.y=3+Math.sin(Date.now()*.005)*.3;
-  blades.rotation.z+=.3*dt; // мельница крутится сама (лор)
-  renderer.render(scene,camera);
-}
-animate();
+    // ===== МЕЛЬНИЦА =====
+    const mill = new THREE.Group();
+    const millBody = new THREE.Mesh(new THREE.BoxGeometry(8, 8, 8), matWood);
+    millBody.position.set(0, 10, 0);
 
-addEventListener('resize',()=>{
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-});
-</script>
+    const millBlades = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const blade = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 5), matDark);
+      blade.position.set(0, 0, 0);
+      blade.rotation.set(0, i * (Math.PI / 3), 0);
+      millBlades.add(blade);
+    }
+    mill.add(millBody, millBlades);
+    mill.position.set(-20, 15, -20);
+    scene.add(mill);
+
+    // ===== ОЗЕРО =====
+    const lake = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x99ccff, roughness: 1 }));
+    lake.rotation.x = -Math.PI/2;
+    lake.position.set(0, -45, 0);
+    scene.add(lake);
+
+    // ===== СТОЛБЫ И ФОНАРИ =====
+    function pole(x, z) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 10), matDark);
+      p.position.set(x, 0, z);
+      scene.add(p);
+    }
+    [[-25, -25], [25, -25], [-25, 25], [25, 25]].forEach(p => pole(p[0], p[1]));
+
+    function lamp(x, z) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), matDark);
+      l.position.set(x, 1, z);
+      scene.add(l);
+    }
+    [[-20, -20], [20, -20], [-20, 20], [20, 20]].forEach(p => lamp(p[0], p[1]));
+
+    // ===== АНИМАЦИЯ И РЕНДЕР =====
+    const clock = new THREE.Clock();
+    let time = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      time += delta;
+
+      // Вращение лопастей мельницы
+      millBlades.rotation.z = time * 0.1;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Закрытие панели
+    document.getElementById('panel-close').addEventListener('click', () => {
+      document.getElementById('panel').style.display = 'none';
+    });
+  </script>
 </body>
 </html>
