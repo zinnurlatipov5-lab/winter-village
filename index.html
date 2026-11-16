@@ -2,519 +2,601 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Зимняя деревня: Метельск</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Метельск: Горизонтальная версия</title>
   <style>
-    body { margin:0; overflow:hidden; background:#0b111b; touch-action:none; font-family:Arial,sans-serif; }
-    #hint { position:fixed; top:10px; left:50%; transform:translateX(-50%);
-      color:#dfe8f2; background:rgba(10,15,25,.8); padding:8px 14px; border-radius:8px;
-      font-size:13px; z-index:20; pointer-events:none; max-width:90%; text-align:center; }
-    #panel { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-      background:#f4ecd8; color:#2b2114; padding:20px; border-radius:10px;
-      max-width:320px; max-height:70vh; overflow-y:auto; font-size:15px; line-height:1.5;
-      display:none; z-index:30; box-shadow:0 6px 24px rgba(0,0,0,.6); white-space:pre-line; }
-    #panel-close { margin-top:14px; padding:10px 20px; background:#7a5c3e; color:#fff;
-      border:none; border-radius:6px; width:100%; font-size:15px; cursor:pointer; }
-    #joy { position:fixed; bottom:25px; left:25px; width:130px; height:130px; border-radius:65px;
-      background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); z-index:20; }
-    #knob { position:absolute; left:40px; top:40px; width:50px; height:50px; border-radius:25px;
-      background:rgba(255,255,255,.4); border:2px solid #fff; }
-    #act { position:fixed; bottom:45px; right:30px; width:90px; height:90px; border-radius:45px;
-      background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.4); z-index:20;
-      color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center;
-      user-select:none; -webkit-user-select:none; }
-    #interact-hint { position:fixed; bottom:150px; left:50%; transform:translateX(-50%);
-      color:#fff; background:rgba(10,15,25,.85); padding:6px 12px; border-radius:6px;
-      font-size:13px; z-index:20; display:none; pointer-events:none; }
+    body { margin: 0; overflow: hidden; background: #05080a; font-family: 'Courier New', monospace; }
+    
+    /* Горизонтальная ориентация */
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle, #0a1520 0%, #000000 100%);
+    }
+
+    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+    /* Интерфейс */
+    .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+    
+    #status-bar {
+      background: rgba(0, 0, 0, 0.6); color: #fff; padding: 10px; border-radius: 8px;
+      font-size: 14px; text-align: center; border-left: 4px solid #ff4d4d;
+      pointer-events: auto;
+    }
+
+    #controls { display: flex; gap: 15px; align-items: flex-end; }
+    
+    /* Джойстик */
+    #joy-base {
+      width: 140px; height: 140px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+    }
+    #joy-knob {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3); border: 2px solid #fff;
+      position: absolute; top: 40px; left: 40px;
+      transition: transform 0.1s;
+    }
+
+    /* Кнопка действия */
+    #action-btn {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(145deg, #ff5e5e, #cc0000);
+      color: white; font-weight: bold; font-size: 18px;
+      border: none; cursor: pointer; box-shadow: 0 0 20px rgba(255, 94, 94, 0.5);
+      pointer-events: auto;
+    }
+
+    /* Всплывающее окно */
+    #modal {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #1a1a1a; color: #ccc; padding: 30px;
+      border: 1px solid #444; width: 350px; max-width: 90%;
+      display: none; text-align: center; pointer-events: auto;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+    #modal h2 { color: #ff4d4d; margin-top: 0; }
+    #close-btn { background: #333; color: white; border: none; padding: 8px 16px; cursor: pointer; margin-top: 15px; }
+
+    /* Подсказка взаимодействия */
+    #hint-text {
+      position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: #fff; padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; display: none;
+      text-shadow: 0 1px 2px black;
+    }
   </style>
 </head>
 <body>
-  <div id="hint">Джойстик — идти. Свайп по экрану — смотреть. Найди дом с красным окном.</div>
-  <div id="panel"><button id="panel-close">Закрыть</button></div>
-  <div id="joy"><div id="knob"></div></div>
-  <div id="act">Действие</div>
-  <div id="interact-hint">Взять письмо</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    // ===== СЦЕНА =====
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a1220);
-    scene.fog = new THREE.Fog(0x0a1220, 8, 70);
+<div id="game-container">
+  <div class="ui-layer">
+    <div id="status-bar">Деревня Метельск | Состояние: Спокойно</div>
+    <div id="hint-text">Нажмите [Действие], чтобы осмотреть объект</div>
+    <div id="controls">
+      <div id="joy-base"><div id="joy-knob"></div></div>
+      <button id="action-btn">ДЕЙСТВИЕ</button>
+    </div>
+  </div>
 
-    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 300);
+  <div id="modal">
+    <h2 id="modal-title">Тайна</h2>
+    <p id="modal-content">Здесь что-то скрыто...</p>
+    <button id="close-btn">Закрыть</button>
+  </div>
+</div>
 
-    const renderer = new THREE.WebGLRenderer({ antialias:false });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-    renderer.setSize(innerWidth, innerHeight);
+<!-- Подключаем Three.js и PostProcessing -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+  import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+  import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+  import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
+
+  // === КОНФИГУРАЦИЯ ===
+  const CONFIG = {
+    bloomStrength: 1.5,
+    bloomRadius: 0.4,
+    bloomThreshold: 0.1,
+    fogColor: 0x0a1520,
+    fogNear: 10,
+    fogFar: 120
+  };
+
+  // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+  let scene, camera, renderer, composer;
+  let moveVec = new THREE.Vector2(0, 0);
+  let lookVec = new THREE.Vector2(0, 0);
+  let playerPos = new THREE.Vector3(0, 1.6, 40);
+  let playerDir = new THREE.Vector3();
+  let objects = ; // Для коллизий
+  let interactable = null;
+  
+  // Элементы UI
+  const joyBase = document.getElementById('joy-base');
+  const joyKnob = document.getElementById('joy-knob');
+  const actionBtn = document.getElementById('action-btn');
+  const hintText = document.getElementById('hint-text');
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalContent = document.getElementById('modal-content');
+  const closeBtn = document.getElementById('close-btn');
+  const statusBar = document.getElementById('status-bar');
+
+  init();
+  animate();
+
+  function init() {
+    // 1. СЦЕНА И КАМЕРА
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05080a);
+    scene.fog = new THREE.FogExp2(CONFIG.fogColor, 0.015);
+
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+    
+    // 2. ОСВЕЩЕНИЕ
+    const ambient = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambient);
+
+    // Лунный свет (холодный)
+    const moonLight = new THREE.DirectionalLight(0xcdd8ee, 0.8);
+    moonLight.position.set(-50, 60, 30);
+    scene.add(moonLight);
+
+    // Источники света (фонари, окна) будут добавлены в функциях создания объектов
+
+    // 3. ГЕОМЕТРИЯ И МАТЕРИАЛЫ (ПРОЦЕДУРНЫЕ)
+    const woodMat = createWoodMaterial();
+    const stoneMat = createStoneMaterial();
+    const snowMat = createSnowMaterial();
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 });
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xffe0b2, emissive: 0xffa000, emissiveIntensity: 1.2 });
+    const redWindowMat = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff0000, emissiveIntensity: 2.0 });
+
+    // 4. МИР
+    createGround();
+    createRoad();
+    createHouses(woodMat, stoneMat, windowMat, redWindowMat);
+    createWell(woodMat, stoneMat);
+    createTrees(woodMat);
+    createFences(woodMat);
+    createLamps(woodMat);
+    createDrifts(snowMat);
+
+    // 5. РЕНДЕРЕР И POST-PROCESSING (Для "киношного" вида)
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
     document.body.appendChild(renderer.domElement);
 
-    // ===== ПРОЦЕДУРНЫЕ ТЕКСТУРЫ =====
-    function makeTex(draw, w, h) {
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      draw(c.getContext('2d'), w, h);
-      const t = new THREE.CanvasTexture(c);
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      return t;
+    // Настройка эффектов (Bloom + Film Grain)
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    const filmPass = new FilmPass(0.8, 0.35, 2048, false);
+
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+    composer.addPass(filmPass);
+
+    // 6. УПРАВЛЕНИЕ
+    setupControls();
+    window.addEventListener('resize', onWindowResize, false);
+  }
+
+  // --- ГЕНЕРАЦИЯ МАТЕРИАЛОВ ---
+  function createWoodMaterial() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#5a4a3a'; ctx.fillRect(0,0,256,256);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    for(let i=0; i<500; i++) ctx.fillRect(Math.random()*256, Math.random()*256, 10, 10);
+    ctx.globalCompositeOperation = 'lighten';
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    for(let i=0; i<200; i++) ctx.fillRect(Math.random()*256, Math.random()*256, 20, 20);
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, metalness: 0.1 });
+  }
+
+  function createStoneMaterial() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#4a505a'; ctx.fillRect(0,0,256,256);
+    ctx.fillStyle = '#3a404a';
+    for(let i=0; i<30; i++) {
+      const w = 20 + Math.random()*40;
+      const h = 15 + Math.random()*30;
+      ctx.fillRect(Math.random()*(256-w), Math.random()*(256-h), w, h);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 2);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, color: 0x555555 });
+  }
+
+  function createSnowMaterial() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#eef2f7'; ctx.fillRect(0,0,256,256);
+    ctx.fillStyle = '#dfe0e5';
+    for(let i=0; i<1000; i++) {
+      ctx.beginPath();
+      ctx.arc(Math.random()*256, Math.random()*256, Math.random()*2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 10);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, color: 0xffffff });
+  }
+
+  // --- СОЗДАНИЕ МИРА ---
+  function createGround() {
+    const geo = new THREE.PlaneGeometry(1000, 1000);
+    const mat = createSnowMaterial();
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
+
+  function createRoad() {
+    const geo = new THREE.PlaneGeometry(12, 200);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.01, 0);
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+    objects.push({ type: 'box', pos: new THREE.Vector3(0,0,0), size: new THREE.Vector3(12, 1, 200) });
+  }
+
+  function createHouses(wood, stone, win, redWin) {
+    const spots = [
+      { x: -25, z: -40, rot: 0, red: true },
+      { x: 25, z: -40, rot: 0, red: false },
+      { x: -15, z: -10, rot: Math.PI/2, red: false },
+      { x: 15, z: -10, rot: -Math.PI/2, red: false },
+      { x: 0, z: -60, rot: 0, red: false }
+    ];
+
+    spots.forEach(spot => {
+      const house = new THREE.Group();
+      
+      // Фундамент
+      const base = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 8), stone);
+      base.position.y = 0.5;
+      house.add(base);
+
+      // Стены
+      const walls = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 7), wood);
+      walls.position.y = 3;
+      house.add(walls);
+
+      // Крыша
+      const roofGeo = new THREE.ConeGeometry(5, 3.5, 4);
+      const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 }));
+      roof.position.y = 6.5;
+      roof.rotation.y = Math.PI/4;
+      house.add(roof);
+
+      // Снег на крыше
+      const snowCap = new THREE.Mesh(new THREE.ConeGeometry(4.8, 1.2, 4), createSnowMaterial());
+      snowCap.position.y = 7.2;
+      snowCap.rotation.y = Math.PI/4;
+      house.add(snowCap);
+
+      // Окна
+      const winGeo = new THREE.BoxGeometry(1.5, 1.5, 0.2);
+      const wMat = spot.red ? redWin : win;
+      
+      const w1 = new THREE.Mesh(winGeo, wMat);
+      w1.position.set(-2.5, 3, 3.5);
+      house.add(w1);
+
+      const w2 = new THREE.Mesh(winGeo, wMat);
+      w2.position.set(2.5, 3, 3.5);
+      house.add(w2);
+
+      // Дымоход
+      const chimney = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), stone);
+      chimney.position.set(2, 7.5, 2);
+      house.add(chimney);
+
+      house.position.set(spot.x, 0, spot.z);
+      house.rotation.y = spot.rot;
+      scene.add(house);
+
+      // Коллизия
+      objects.push({ type: 'box', pos: new THREE.Vector3(spot.x, 0, spot.z), size: new THREE.Vector3(4, 3, 4), interact: spot.red ? 'red_house' : 'house' });
+    });
+  }
+
+  function createWell(wood, stone) {
+    const well = new THREE.Group();
+    
+    // Сруб
+    const logGeo = new THREE.BoxGeometry(0.4, 1.2, 1.0);
+    for(let i=0; i<12; i++) {
+      const a = i * Math.PI*2/12;
+      const log = new THREE.Mesh(logGeo, wood);
+      log.position.set(Math.cos(a)*1.4, 0.6, Math.sin(a)*1.4);
+      log.rotation.y = -a;
+      well.add(log);
     }
 
-    // Деревянные доски
-    const woodTex = makeTex((ctx, w, h) => {
-      ctx.fillStyle = '#4a3b2a'; ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 8; i++) {
-        ctx.fillStyle = i % 2 ? '#453627' : '#52422f';
-        ctx.fillRect(0, i * h/8, w, h/8 - 2);
-        ctx.strokeStyle = 'rgba(20,14,8,.7)';
-        ctx.beginPath(); ctx.moveTo(0, i * h/8); ctx.lineTo(w, i * h/8); ctx.stroke();
-      }
-      for (let i = 0; i < 300; i++) {
-        ctx.fillStyle = 'rgba(25,17,9,' + (Math.random()*.25) + ')';
-        ctx.fillRect(Math.random()*w, Math.random()*h, 3, 3);
-      }
-    }, 128, 128);
+    // Навес
+    const postGeo = new THREE.BoxGeometry(0.3, 3, 0.3);
+    const p1 = new THREE.Mesh(postGeo, wood); p1.position.set(-1.8, 1.5, 0); well.add(p1);
+    const p2 = new THREE.Mesh(postGeo, wood); p2.position.set(1.8, 1.5, 0); well.add(p2);
+    
+    const beamGeo = new THREE.BoxGeometry(4, 0.2, 0.2);
+    const b = new THREE.Mesh(beamGeo, wood); b.position.set(0, 3, 0); well.add(b);
 
-    // Снег с неровностями
-    const snowTex = makeTex((ctx, w, h) => {
-      ctx.fillStyle = '#dfe7ef'; ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 400; i++) {
-        const g = 200 + Math.random()*55;
-        ctx.fillStyle = 'rgba(' + g + ',' + (g+4) + ',' + (g+10) + ',' + (.4 + Math.random()*.4) + ')';
-        ctx.beginPath();
-        ctx.arc(Math.random()*w, Math.random()*h, 2 + Math.random()*8, 0, Math.PI*2);
-        ctx.fill();
-      }
-    }, 128, 128);
-    snowTex.repeat.set(30, 30);
+    // Ведро (декорация)
+    const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.6, 8), stone);
+    bucket.position.set(0, 2.5, 0);
+    well.add(bucket);
 
-    // Камень
-    const stoneTex = makeTex((ctx, w, h) => {
-      ctx.fillStyle = '#55565a'; ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 40; i++) {
-        const g = 60 + Math.random()*50;
-        ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + (g+5) + ')';
-        ctx.fillRect(Math.random()*w, Math.random()*h, 14 + Math.random()*22, 10 + Math.random()*16);
-      }
-    }, 128, 128);
+    well.position.set(10, 0, -20);
+    scene.add(well);
+    objects.push({ type: 'cylinder', pos: new THREE.Vector3(10, 0, -20), radius: 1.5, height: 3, interact: 'well' });
+  }
 
-    // Дорога
-    const roadTex = makeTex((ctx, w, h) => {
-      ctx.fillStyle = '#39445a'; ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 150; i++) {
-        ctx.fillStyle = 'rgba(200,210,225,' + (Math.random()*.25) + ')';
-        ctx.fillRect(Math.random()*w, Math.random()*h, 2 + Math.random()*5, 2 + Math.random()*4);
-      }
-    }, 128, 128);
-    roadTex.repeat.set(1, 8);
+  function createTrees(wood) {
+    const spots = [[-30, -20], [30, -20], [-10, 10], [10, 10], [-40, -50], [40, -50]];
+    spots.forEach(p => {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2, 6), wood);
+      trunk.position.y = 1;
+      tree.add(trunk);
+      
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3, 8), new THREE.MeshStandardMaterial({ color: 0x1a2a15, roughness: 0.8 }));
+      cone.position.y = 2.5;
+      tree.add(cone);
 
-    // Тёплое окно (светится)
-    const warmWinTex = makeTex((ctx, w, h) => {
-      ctx.fillStyle = '#1a1d22'; ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#e8a94e';
-      ctx.fillRect(w*.18, h*.15, w*.28, h*.3);
-      ctx.fillRect(w*.54, h*.15, w*.28, h*.3);
-      ctx.fillRect(w*.18, h*.55, w*.28, h*.3);
-      ctx.fillRect(w*.54, h*.55, w*.28, h*.3);
-      ctx.strokeStyle = '#0d0f12'; ctx.lineWidth = 6;
-      ctx.strokeRect(0, 0, w, h);
-    }, 64, 64);
+      tree.position.set(p, 0, p);
+      scene.add(tree);
+      objects.push({ type: 'cylinder', pos: new THREE.Vector3(p, 0, p), radius: 1, height: 4 });
+    });
+  }
 
-    const snowMat = new THREE.MeshStandardMaterial({ map: snowTex, roughness:1, color:0xffffff });
-    const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness:1, color:0xbfae9a });
-    const stoneMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness:1 });
-    const roofMat = new THREE.MeshStandardMaterial({ color:0x23262e, roughness:.9 });
-    const winMat = new THREE.MeshStandardMaterial({ map: warmWinTex, emissive:0xe8a94e, emissiveIntensity:.55, emissiveMap: warmWinTex });
-    const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness:1 });
-
-    // ===== СВЕТ =====
-    scene.add(new THREE.HemisphereLight(0x8aa8cc, 0x1c2431, 0.55));
-    const moon = new THREE.DirectionalLight(0xcdd8ee, 0.65);
-    moon.position.set(-30, 40, 15);
-    scene.add(moon);
-
-    // ===== ЗЕМЛЯ И ДОРОГА =====
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), snowMat);
-    ground.rotation.x = -Math.PI/2;
-    scene.add(ground);
-
-    function road(x1, z1, x2, z2, w) {
-      const dx = x2-x1, dz = z2-z1, len = Math.hypot(dx, dz);
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), roadMat);
-      m.rotation.x = -Math.PI/2;
-      m.rotation.z = Math.atan2(dx, dz);
-      m.position.set((x1+x2)/2, 0.02, (z1+z2)/2);
-      scene.add(m);
+  function createFences(wood) {
+    const fenceGeo = new THREE.BoxGeometry(0.1, 1.5, 0.1);
+    const fenceMat = wood;
+    
+    // Линия забора
+    const count = 50;
+    for(let i=0; i<count; i++) {
+      const t = i / count;
+      const x = -20 + t * 40;
+      const z = -50;
+      const post = new THREE.Mesh(fenceGeo, fenceMat);
+      post.position.set(x, 0.75, z);
+      scene.add(post);
+      objects.push({ type: 'box', pos: new THREE.Vector3(x, 0, z), size: new THREE.Vector3(0.2, 1.5, 0.2) });
     }
-    road(0, 60, 2, 20, 4.5);
-    road(2, 20, 0, -5, 4.5);
-    road(0, -5, -2, -18, 4);
-    road(-2, -18, -12, -20, 3.5);
-    road(0, -5, 14, -8, 3.5);
-    road(-2, -18, -30, -40, 3.5);
-    road(2, -18, 30, -38, 3.5);
-    road(0, -18, 0, -42, 3.5);
+  }
 
-    // ===== КОЛЛИЗИИ =====
-    const colliders = []; // {x, z, hw, hd}
-    const R = 0.5; // радиус игрока
+  function createLamps(wood) {
+    const spots = [[0, -30], [-15, -10], [15, -10]];
+    spots.forEach(p => {
+      const lamp = new THREE.Group();
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 3, 6), wood);
+      pole.position.y = 1.5;
+      lamp.add(pole);
+      
+      const lightSource = new THREE.PointLight(0xffaa00, 2, 15);
+      lightSource.position.set(0, 3.5, 0);
+      lamp.add(lightSource);
 
-    function collide(px, pz) {
-      for (const c of colliders) {
-        const dx = px - c.x, dz = pz - c.z;
-        const ox = c.hw + R - Math.abs(dx);
-        const oz = c.hd + R - Math.abs(dz);
-        if (ox > 0 && oz > 0) {
-          if (ox < oz) px += (dx > 0 ? ox : -ox);
-          else pz += (dz > 0 ? oz : -oz);
+      lamp.position.set(p, 0, p);
+      scene.add(lamp);
+    });
+  }
+
+  function createDrifts(snow) {
+    for(let i=0; i<20; i++) {
+      const drift = new THREE.Mesh(new THREE.SphereGeometry(1 + Math.random()*1.5, 8, 6), snow);
+      drift.scale.y = 0.5 + Math.random()*0.3;
+      drift.position.set((Math.random()-0.5)*80, 0.5, (Math.random()-0.5)*80);
+      scene.add(drift);
+    }
+  }
+
+  // --- УПРАВЛЕНИЕ ---
+  function setupControls() {
+    // Джойстик
+    const startTouch = (e) => {
+      if(e.touches.length > 1) return;
+      const t = e.touches;
+      const rect = joyBase.getBoundingClientRect();
+      const centerX = rect.left + rect.width/2;
+      const centerY = rect.top + rect.height/2;
+      
+      const dx = t.clientX - centerX;
+      const dy = t.clientY - centerY;
+      const dist = Math.hypot(dx, dy);
+      const max = 60;
+      
+      if(dist > max) {
+        const ratio = max / dist;
+        moveVec.set(dx * ratio, dy * ratio);
+      } else {
+        moveVec.set(dx, dy);
+      }
+      
+      // Визуализация
+      const normX = (moveVec.x / 60) * 40;
+      const normY = (moveVec.y / 60) * 40;
+      joyKnob.style.transform = `translate(${normX}px, ${normY}px)`;
+    };
+
+    joyBase.addEventListener('touchstart', startTouch, {passive: false});
+    joyBase.addEventListener('touchmove', startTouch, {passive: false});
+    joyBase.addEventListener('touchend', () => { moveVec.set(0,0); joyKnob.style.transform = 'translate(0,0)'; }, {passive: false});
+
+    // Вращение камеры (свайп по экрану)
+    let lastX = 0, lastY = 0;
+    let isDragging = false;
+
+    document.addEventListener('touchstart', (e) => {
+      if(e.target.closest('#joy-base') || e.target.closest('#action-btn')) return;
+      isDragging = true;
+      lastX = e.touches.clientX;
+      lastY = e.touches.clientY;
+    }, {passive: false});
+
+    document.addEventListener('touchmove', (e) => {
+      if(!isDragging) return;
+      const x = e.touches.clientX;
+      const y = e.touches.clientY;
+      
+      const dx = (x - lastX) * 0.002;
+      const dy = (y - lastY) * 0.002;
+      
+      lookVec.x += dx;
+      lookVec.y += dy;
+      lookVec.y = Math.max(-1.2, Math.min(1.2, lookVec.y)); // Ограничение взгляда вверх/вниз
+      
+      lastX = x;
+      lastY = y;
+    }, {passive: false});
+
+    document.addEventListener('touchend', () => isDragging = false);
+
+    // Кнопка действия
+    actionBtn.addEventListener('click', () => {
+      if(interactable) {
+        showModal(interactable.type);
+      }
+    });
+
+    // Закрытие модалки
+    closeBtn.addEventListener('click', () => modal.style.display = 'none');
+  }
+
+  function showModal(type) {
+    modal.style.display = 'block';
+    if(type === 'red_house') {
+      modalTitle.innerText = "Странный дом";
+      modalContent.innerText = "В окне горит красный свет. Слышен тихий скрежет, будто кто-то царапает стекло изнутри.";
+      statusBar.innerText = "Деревня Метельск | Состояние: Тревога";
+      statusBar.style.borderLeftColor = "#ff4d4d";
+    } else if (type === 'well') {
+      modalTitle.innerText = "Колодец";
+      modalContent.innerText = "Вода внизу кажется черной. На срубе вырезаны странные символы.";
+      statusBar.innerText = "Деревня Метельск | Состояние: Подозрительно";
+      statusBar.style.borderLeftColor = "#ffff00";
+    } else {
+      modalTitle.innerText = "Обычный дом";
+      modalContent.innerText = "Пусто. Все вещи давно вынесены.";
+    }
+  }
+
+  // --- ИГРОВОЙ ЦИКЛ ---
+  function animate() {
+    requestAnimationFrame(animate);
+
+    // 1. Движение
+    if (moveVec.length() > 0.1) {
+      const speed = 0.15;
+      // Нормализуем вектор движения относительно камеры
+      const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), lookVec.x);
+      const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), lookVec.x);
+      
+      const moveDir = forward.multiplyScalar(-moveVec.y).add(right.multiplyScalar(moveVec.x));
+      moveDir.normalize();
+      
+      const nextPos = new THREE.Vector3(playerPos.x + moveDir.x * speed, playerPos.y, playerPos.z + moveDir.z * speed);
+      
+      if (!checkCollision(nextPos)) {
+        playerPos.add(moveDir.multiplyScalar(speed));
+      }
+    }
+
+    // 2. Камера
+    // Камера следует за игроком, но с небольшим отставанием для плавности
+    camera.position.lerp(new THREE.Vector3(playerPos.x, playerPos.y + 1.6, playerPos.z + 5), 0.1);
+    
+    // Поворот камеры
+    camera.rotation.y = lookVec.x;
+    camera.rotation.x = -lookVec.y;
+
+    // 3. Проверка взаимодействия
+    interactable = null;
+    let minDist = 100;
+    
+    objects.forEach(obj => {
+      const dist = playerPos.distanceTo(obj.pos);
+      if(dist < 4 && obj.interact) {
+        if(dist < minDist) {
+          minDist = dist;
+          interactable = obj;
         }
       }
-      return [px, pz];
+    });
+
+    if(interactable) {
+      hintText.style.display = 'block';
+    } else {
+      hintText.style.display = 'none';
     }
 
-    // ===== ДОМА =====
-    function makeHouse(x, z, rot, hasRedLight) {
-      const g = new THREE.Group();
+    // Рендер
+    composer.render();
+  }
 
-      const stone = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.2, 6.6), stoneMat);
-      stone.position.y = 0.6;
-      g.add(stone);
-
-      const body = new THREE.Mesh(new THREE.BoxGeometry(6, 4.8, 6), woodMat);
-      body.position.y = 3.0;
-      g.add(body);
-
-      const winGeo = new THREE.BoxGeometry(1.3, 1.4, .2);
-      [[-1.8, 2.4], [0, 2.4]].forEach(p => {
-        const w = new THREE.Mesh(winGeo, winMat);
-        w.position.set(p[0], p[1], 3.05);
-        g.add(w);
-      });
-
-      if (hasRedLight) {
-        const redWin = new THREE.Mesh(
-          new THREE.BoxGeometry(1.3, 1.4, .22),
-          new THREE.MeshStandardMaterial({ color:0x330000, emissive:0xff1a1a, emissiveIntensity:1.6 })
-        );
-        redWin.position.set(1.8, 2.4, 3.05);
-        g.add(redWin);
-        const redLight = new THREE.PointLight(0xff2020, 2.2, 10);
-        redLight.position.set(1.8, 2.4, 4.2);
-        g.add(redLight);
-      }
-
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(5.2, 3.2, 4), roofMat);
-      roof.position.y = 6.2; roof.rotation.y = Math.PI/4;
-      g.add(roof);
-
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(4.9, 1.3, 4), snowMat);
-      cap.position.y = 6.9; cap.rotation.y = Math.PI/4;
-      g.add(cap);
-
-      const pipe = new THREE.Mesh(new THREE.BoxGeometry(.8, 2, .8), stoneMat);
-      pipe.position.set(1.6, 6.4, 0);
-      g.add(pipe);
-
-      const porch = new THREE.Mesh(new THREE.BoxGeometry(2.4, .4, 1.4), woodMat);
-      porch.position.set(0, .2, 3.6);
-      g.add(porch);
-
-      g.position.set(x, 0, z);
-      g.rotation.y = rot || 0;
-      scene.add(g);
-
-      colliders.push({ x, z, hw: 3.4, hd: 3.4 });
-    }
-
-    const houseSpots = [[-20,-10],[20,-10],[-30,-30],[30,-30],[-15,-45],[15,-45],[0,-55]];
-    houseSpots.forEach((p, i) => makeHouse(p[0], p[1], 0, i === 0));
-
-    // ===== ПОЧТА =====
-    (function makePostOffice(x, z) {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 7), woodMat);
-      body.position.y = 3; g.add(body);
-
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(6.2, 3.5, 4), roofMat);
-      roof.position.y = 7.6; roof.rotation.y = Math.PI/4; g.add(roof);
-
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(5.8, 1.6, 4), snowMat);
-      cap.position.y = 8.3; cap.rotation.y = Math.PI/4; g.add(cap);
-
-      g.position.set(x, 0, z);
-      scene.add(g);
-      colliders.push({ x, z, hw: 4.2, hd: 3.7 });
-    })(-12, -22);
-
-    // ===== КОЛОДЕЦ =====
-    (function makeWell(x, z) {
-      const g = new THREE.Group();
-      const logMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness:1, color:0x8a7a66 });
-
-      const logGeo = new THREE.BoxGeometry(0.35, 1.4, 1.0);
-      for (let i = 0; i < 10; i++) {
-        const log = new THREE.Mesh(logGeo, logMat);
-        const a = i * Math.PI*2/10;
-        log.position.set(Math.cos(a)*1.35, 0.7, Math.sin(a)*1.35);
-        log.rotation.y = -a;
-        g.add(log);
-      }
-
-      const water = new THREE.Mesh(new THREE.CircleGeometry(1.1, 12),
-        new THREE.MeshStandardMaterial({ color:0x16232f, roughness:.3 }));
-      water.rotation.x = -Math.PI/2;
-      water.position.y = 1.05;
-      g.add(water);
-
-      [[-1.6, 0], [1.6, 0]].forEach(p => {
-        const post = new THREE.Mesh(new THREE.BoxGeometry(.3, 2.8, .3), logMat);
-        post.position.set(p[0], 2.4, p[1]);
-        g.add(post);
-      });
-
-      for (let i = 0; i < 5; i++) {
-        const beam = new THREE.Mesh(new THREE.BoxGeometry(3.6, .18, .18), logMat);
-        beam.position.set((i-2)*.8, 4.2, 0);
-        g.add(beam);
-      }
-
-      const axle = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 2.6, 8), logMat);
-      axle.rotation.z = Math.PI/2;
-      axle.position.set(0, 3.2, 0);
-      g.add(axle);
-
-      g.position.set(x, 0, z);
-      scene.add(g);
-      colliders.push({ x, z, hw: 1.8, hd: 1.8 });
-    })(6, 2);
-
-    // ===== ДЕРЕВЬЯ =====
-    function makeTree(x, z) {
-      const g = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.25, .35, 2, 6), woodMat);
-      trunk.position.y = 1; g.add(trunk);
-      const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3, 7), new THREE.MeshStandardMaterial({ color:0x1d3325, roughness:1 }));
-      c1.position.y = 3; g.add(c1);
-      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.4, 7), new THREE.MeshStandardMaterial({ color:0x1d3325, roughness:1 }));
-      c2.position.y = 4.6; g.add(c2);
-      const sc1 = new THREE.Mesh(new THREE.ConeGeometry(1.25, .5, 7), snowMat);
-      sc1.position.y = 3.9; g.add(sc1);
-      const sc2 = new THREE.Mesh(new THREE.ConeGeometry(.85, .4, 7), snowMat);
-      sc2.position.y = 5.3; g.add(sc2);
-      g.position.set(x, 0, z);
-      scene.add(g);
-      colliders.push({ x, z, hw: .8, hd: .8 });
-    }
-    const treeSpots = [[-8,30],[9,26],[-9,14],[10,4],[-10,-8],[9,-24],[-9,-32],[13,-20],[-16,-8],[18,-14],[-24,-16],[26,-22],[-34,-26],[34,-30],[-22,-38],[22,-44],[-6,-50],[8,-52],[25,10],[-25,14],[35,-8],[-35,4]];
-    treeSpots.forEach(p => makeTree(p[0], p[1]));
-
-    // ===== ФОНАРИ С ТЁПЛЫМ СВЕТОМ =====
-    function makeLamp(x, z) {
-      const g = new THREE.Group();
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 3.4, 6), woodMat);
-      pole.position.y = 1.7; g.add(pole);
-      const lampHead = new THREE.Mesh(new THREE.BoxGeometry(.5, .6, .5),
-        new THREE.MeshStandardMaterial({ color:0x2a2c30, roughness:.8 }));
-      lampHead.position.y = 3.4; g.add(lampHead);
-      const bulb = new THREE.Mesh(new THREE.BoxGeometry(.34, .4, .34),
-        new THREE.MeshStandardMaterial({ color:0xffc964, emissive:0xffb84e, emissiveIntensity:1.5 }));
-      bulb.position.y = 3.4; g.add(bulb);
-      const light = new THREE.PointLight(0xffb050, 1.4, 14);
-      light.position.set(0, 3.3, 0);
-      g.add(light);
-      g.position.set(x, 0, z);
-      scene.add(g);
-      colliders.push({ x, z, hw: .3, hd: .3 });
-    }
-    [[2,18],[0,-2],[-2,-16],[-11,-19],[13,-7],[1,-40],[-29,-38],[29,-36]].forEach(p => makeLamp(p[0], p[1]));
-
-    // ===== СУГРОБЫ =====
-    function drift(x, z, s) {
-      const d = new THREE.Mesh(new THREE.SphereGeometry(s, 7, 5), snowMat);
-      d.scale.y = 0.4;
-      d.position.set(x, 0.1, z);
-      scene.add(d);
-    }
-    [[-4,50],[5,42],[-6,30],[6,10],[-5,-2],[7,-12],[-6,-24],[9,-16],[-8,-34],[12,-30],[-16,-28],[20,-34]]
-      .forEach(p => drift(p[0], p[1], 1 + Math.random()*1.4));
-
-    // ===== ЗАБОР ВДОЛЬ ДОРОГИ =====
-    function fence(x1, z1, x2, z2) {
-      const g = new THREE.Group();
-      const len = Math.hypot(x2-x1, z2-z1);
-      const n = Math.floor(len / 2);
-      for (let i = 0; i <= n; i++) {
-        const t = i / n;
-        const post = new THREE.Mesh(new THREE.BoxGeometry(.12, 1.1, .12), woodMat);
-        post.position.set(x1 + (x2-x1)*t, .55, z1 + (z2-z1)*t);
-        g.add(post);
-      }
-      const rail1 = new THREE.Mesh(new THREE.BoxGeometry(len, .08, .08), woodMat);
-      rail1.position.set((x1+x2)/2, .9, (z1+z2)/2);
-      rail1.rotation.y = -Math.atan2(z2-z1, x2-x1);
-      g.add(rail1);
-      const rail2 = rail1.clone();
-      rail2.position.y = .5;
-      g.add(rail2);
-      scene.add(g);
-    }
-    fence(-4, 18, -4, -2);
-    fence(6, 18, 6, 2);
-    fence(-4, -24, -4, -38);
-    fence(6, -24, 6, -38);
-
-    // ===== ПИСЬМО =====
-    const letter = new THREE.Mesh(
-      new THREE.BoxGeometry(.5, .05, .7),
-      new THREE.MeshStandardMaterial({ color:0xf4ecd8, roughness:1, emissive:0xf4ecd8, emissiveIntensity:.25 })
-    );
-    letter.position.set(-20, 0.08, -7.2);
-    scene.add(letter);
-    let letterFound = false;
-
-    // ===== СНЕГОПАД =====
-    const snowCount = 1200;
-    const snowGeo = new THREE.BufferGeometry();
-    const snowVerts = [];
-    for (let i = 0; i < snowCount; i++) {
-      snowVerts.push((Math.random()-.5)*220);
-      snowVerts.push(Math.random()*60);
-      snowVerts.push((Math.random()-.5)*220);
-    }
-    snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowVerts, 3));
-    const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color:0xffffff, size:.14, transparent:true, opacity:.9 }));
-    scene.add(snow);
-
-    // ===== ДЖОЙСТИК =====
-    const joy = document.getElementById('joy');
-    const knob = document.getElementById('knob');
-    const move = { x: 0, y: 0 };
-    let joyId = null;
-    let joyCenter = { x: 0, y: 0 };
-
-    function joyStart(e) {
-      const t = e.changedTouches[0];
-      joyId = t.identifier;
-      const r = joy.getBoundingClientRect();
-      joyCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
-      joyUpdate(t);
-      e.preventDefault();
-    }
-    function joyUpdate(t) {
-      let dx = t.clientX - joyCenter.x;
-      let dy = t.clientY - joyCenter.y;
-      const max = 45, len = Math.hypot(dx, dy);
-      if (len > max) { dx = dx/len*max; dy = dy/len*max; }
-      knob.style.left = (40 + dx) + 'px';
-      knob.style.top = (40 + dy) + 'px';
-      move.x = dx / max;
-      move.y = dy / max;
-    }
-    joy.addEventListener('touchstart', joyStart, { passive:false });
-    document.addEventListener('touchmove', e => {
-      for (const t of e.changedTouches) {
-        if (t.identifier === joyId) joyUpdate(t);
-      }
-    }, { passive:false });
-    function joyEnd(e) {
-      for (const t of e.changedTouches) {
-        if (t.identifier === joyId) {
-          joyId = null;
-          move.x = move.y = 0;
-          knob.style.left = '40px';
-          knob.style.top = '40px';
+  function checkCollision(newPos) {
+    for (const obj of objects) {
+      if (obj.type === 'box') {
+        const halfSize = obj.size.clone().multiplyScalar(0.5);
+        if (newPos.x >= obj.pos.x - halfSize.x && newPos.x <= obj.pos.x + halfSize.x &&
+            newPos.z >= obj.pos.z - halfSize.z && newPos.z <= obj.pos.z + halfSize.z) {
+          return true;
+        }
+      } else if (obj.type === 'cylinder') {
+        const dx = newPos.x - obj.pos.x;
+        const dz = newPos.z - obj.pos.z;
+        if (Math.hypot(dx, dz) < obj.radius) {
+          return true;
         }
       }
     }
-    document.addEventListener('touchend', joyEnd);
-    document.addEventListener('touchcancel', joyEnd);
+    return false;
+  }
 
-    // ===== ОБЗОР СВАЙПОМ =====
-    let lookId = null, lastX = 0, lastY = 0;
-    let yaw = 0, pitch = 0;
-
-    document.addEventListener('touchstart', e => {
-      for (const t of e.changedTouches) {
-        if (t.clientX < innerWidth*.35 && t.clientY > innerHeight*.55) continue; // зона джойстика
-        if (t.target === document.getElementById('act') || t.target === document.getElementById('panel')) continue;
-        if (lookId === null) { lookId = t.identifier; lastX = t.clientX; lastY = t.clientY; }
-      }
-    });
-    document.addEventListener('touchmove', e => {
-      for (const t of e.changedTouches) {
-        if (t.identifier !== lookId) continue;
-        yaw -= (t.clientX - lastX) * .005;
-        pitch -= (t.clientY - lastY) * .005;
-        pitch = Math.max(-1.2, Math.min(1.2, pitch));
-        lastX = t.clientX;
-        lastY = t.clientY;
-      }
-      e.preventDefault();
-    }, { passive:false });
-    document.addEventListener('touchend', e => {
-      for (const t of e.changedTouches) {
-        if (t.identifier === lookId) lookId = null;
-      }
-    });
-
-    // ===== ПАНЕЛЬ ПИСЬМА =====
-    const panel = document.getElementById('panel');
-    const hint = document.getElementById('interact-hint');
-
-    document.getElementById('panel-close').addEventListener('click', () => panel.style.display = 'none');
-
-    document.getElementById('act').addEventListener('click', () => {
-      if (nearLetter && !letterFound) {
-        letterFound = true;
-        letter.visible = false;
-        panel.style.display = 'block';
-        panel.innerHTML = 'Метельск, 14 декабря 1987 г.\n\n' +
-          'Кто бы это ни читал — не стойте на открытом месте после заката.\n' +
-          'Мельница снова крутится, хотя ветер стих три дня назад.\n\n' +
-          'Если найдёте это письмо — идите к колодцу. Не смотрите вниз.\n\n' +
-          '— А. Северцев';
-        document.getElementById('hint').textContent = 'Письмо найдено! Проверь колодец.';
-      }
-    });
-
-    // ===== ИГРОВОЙ ЦИКЛ =====
-    let nearLetter = false;
-    const speed = 0.12;
-
-    camera.position.set(0, 1.7, 50);
-    camera.rotation.order = 'YXZ';
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      // Правильное движение: вперёд = от игрока в сторону взгляда
-      const fx = -Math.sin(yaw), fz = -Math.cos(yaw);   // вперёд
-      const rx = Math.cos(yaw), rz = -Math.sin(yaw);    // вправо
-      let nx = camera.position.x + (fx * (-move.y) + rx * move.x) * speed;
-      let nz = camera.position.z + (fz * (-move.y) + rz * move.x) * speed;
-      [nx, nz] = collide(nx, nz);
-      camera.position.x = nx;
-      camera.position.z = nz;
-
-      camera.rotation.y = yaw;
-      camera.rotation.x = pitch;
-
-      // снег падает
-      const pos = snow.geometry.attributes.position;
-      for (let i = 0; i < pos.count; i++) {
-        let y = pos.getY(i) - .07;
-        if (y < 0) y = 60;
-        pos.setY(i, y);
-      }
-      pos.needsUpdate = true;
-
-      // близость к письму
-      const d = Math.hypot(camera.position.x - letter.position.x, camera.position.z - letter.position.z);
-      nearLetter = d < 3;
-      hint.style.display = (nearLetter && !letterFound) ? 'block' : 'none';
-
-      renderer.render(scene, camera);
-    }
-    animate();
-  </script>
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+  }
+</script>
 </body>
 </html>
